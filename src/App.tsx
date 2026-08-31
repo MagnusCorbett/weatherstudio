@@ -160,6 +160,30 @@ function formatTemp(value: number, unit: Unit, showDecimals = false) {
   return `${showDecimals ? converted.toFixed(1) : Math.round(converted)}°`
 }
 
+function formatDuration(milliseconds: number) {
+  const minutes = Math.max(0, Math.round(milliseconds / 60000))
+  return String(Math.floor(minutes / 60)) + 'h ' + String(minutes % 60) + 'm'
+}
+
+function getDaylightStats(sunrise: string, sunset: string, now: number) {
+  const sunriseTime = Date.parse(sunrise)
+  const sunsetTime = Date.parse(sunset)
+  if (!Number.isFinite(sunriseTime) || !Number.isFinite(sunsetTime) || sunsetTime <= sunriseTime) {
+    return { progress: 0, durationLabel: '—', remainingLabel: '—' }
+  }
+  const progress = Math.min(1, Math.max(0, (now - sunriseTime) / (sunsetTime - sunriseTime)))
+  const remainingLabel = now < sunriseTime
+    ? formatDuration(sunriseTime - now) + ' to sunrise'
+    : now <= sunsetTime
+      ? formatDuration(sunsetTime - now) + ' left'
+      : 'Nighttime'
+  return {
+    progress,
+    durationLabel: formatDuration(sunsetTime - sunriseTime),
+    remainingLabel,
+  }
+}
+
 function WeatherIcon({ icon: Icon, size = 24, className = '' }: { icon: WeatherIconComponent; size?: number; className?: string }) {
   const semanticClass = Icon === Sun
     ? 'icon-sun'
@@ -184,6 +208,7 @@ function App() {
   const [profileDraft, setProfileDraft] = useState<UserProfile>(readStoredProfile)
   const [weather, setWeather] = useState<DashboardWeather | null>(null)
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'live' | 'demo'>('loading')
+  const [now, setNow] = useState(() => Date.now())
   const [weatherError, setWeatherError] = useState('')
   const [search, setSearch] = useState('')
   const [searchError, setSearchError] = useState('')
@@ -207,6 +232,10 @@ function App() {
   useEffect(() => writeStorage('weatherstudio:selectedLocation', selectedLocation), [selectedLocation])
   useEffect(() => writeStorage('weatherstudio:locationMode', locationMode), [locationMode])
   useEffect(() => writeStorage('weatherstudio:profile', profile), [profile])
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     let currentRequest = true
@@ -232,6 +261,11 @@ function App() {
   const hourlyRows = isWeatherLoading ? [] : weather?.hourly.length ? weather.hourly : demoHourly
   const forecastRows = isWeatherLoading ? [] : weather?.forecast.length ? weather.forecast : demoForecast
   const today = forecastRows[0]
+  const fallbackSunrise = new Date(now)
+  fallbackSunrise.setHours(7, 24, 0, 0)
+  const fallbackSunset = new Date(now)
+  fallbackSunset.setHours(18, 18, 0, 0)
+  const daylight = getDaylightStats(weather?.sunrise ?? fallbackSunrise.toISOString(), weather?.sunset ?? fallbackSunset.toISOString(), now)
 
   const submitSearch = async () => {
     const normalized = search.trim().toLowerCase()
@@ -443,7 +477,7 @@ function App() {
 
             <div className="detail-stack">
               <article className="panel details-panel"><div className="section-heading compact"><div><span className="section-kicker">At a glance</span><h2>Details</h2></div><Gauge size={19} /></div><div className="detail-grid">{isWeatherLoading ? Array.from({ length: 6 }, (_, index) => <div className="metric loading-metric" key={`loading-metric-${index}`}><LoadingValue className="loading-metric-icon" /><div><LoadingValue className="loading-metric-label" /><LoadingValue className="loading-metric-value" /><LoadingValue className="loading-metric-sub" /></div></div>) : <><Metric icon={Wind} tone="wind" label="Wind" value={`${Math.round(current?.windSpeed ?? 9)} mph`} sub={current?.windDirection ?? 'WSW'} /><Metric icon={Droplets} tone="water" label="Humidity" value={`${Math.round(current?.humidity ?? 63)}%`} sub="Comfortable" /><Metric icon={EyeIcon} label="Visibility" value={`${Math.round(current?.visibility ?? 10)} mi`} sub="Clear view" /><Metric icon={Gauge} label="Pressure" value={(current?.pressure ?? 30.05).toFixed(2)} sub="inHg" /><Metric icon={Sun} tone="uv" label="UV index" value={`${Math.round(current?.uvIndex ?? 4)}`} sub="Moderate" /><Metric icon={AirVent} tone="wind" label="Dew point" value={formatTemp(current?.dewPoint ?? 59, unit, showDecimals)} sub="Comfortable" /></>}</div></article>
-              <article className="panel sun-panel"><div className="section-heading compact"><div><span className="section-kicker">Daylight</span><h2>Sunrise & sunset</h2></div><Sun size={19} className="icon-sun" /></div><div className="sun-times"><div><Sunrise size={20} /><span>Sunrise<strong>{isWeatherLoading ? <LoadingValue className="loading-sun-time" /> : weather ? formatClock(weather.sunrise, weather.timeZone) : '7:24 AM'}</strong></span></div><div><Sunset size={20} /><span>Sunset<strong>{isWeatherLoading ? <LoadingValue className="loading-sun-time" /> : weather ? formatClock(weather.sunset, weather.timeZone) : '6:18 PM'}</strong></span></div></div><div className={`daylight-bar ${isWeatherLoading ? 'loading-daylight-bar' : ''}`}><span /><i className="sun-position" /></div><div className="daylight-caption">{isWeatherLoading ? <><LoadingValue className="loading-daylight-caption" /><LoadingValue className="loading-daylight-caption loading-daylight-caption-short" /></> : <><span>10h 54m of daylight</span><span>6h 42m left</span></>}</div></article>
+              <article className="panel sun-panel"><div className="section-heading compact"><div><span className="section-kicker">Daylight</span><h2>Sunrise & sunset</h2></div><Sun size={19} className="icon-sun" /></div><div className="sun-times"><div><Sunrise size={20} /><span>Sunrise<strong>{isWeatherLoading ? <LoadingValue className="loading-sun-time" /> : weather ? formatClock(weather.sunrise, weather.timeZone) : '7:24 AM'}</strong></span></div><div><Sunset size={20} /><span>Sunset<strong>{isWeatherLoading ? <LoadingValue className="loading-sun-time" /> : weather ? formatClock(weather.sunset, weather.timeZone) : '6:18 PM'}</strong></span></div></div><div className={`daylight-bar ${isWeatherLoading ? 'loading-daylight-bar' : ''}`}><span style={isWeatherLoading ? undefined : { width: String(daylight.progress * 100) + '%' }} /><i className="sun-position" style={isWeatherLoading ? undefined : { left: String(daylight.progress * 100) + '%' }} /></div><div className="daylight-caption">{isWeatherLoading ? <><LoadingValue className="loading-daylight-caption" /><LoadingValue className="loading-daylight-caption loading-daylight-caption-short" /></> : <><span>{daylight.durationLabel} of daylight</span><span>{daylight.remainingLabel}</span></>}</div></article>
             </div>
           </section>
 
