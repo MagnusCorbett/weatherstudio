@@ -5,4 +5,5 @@ dist/
 # Local environment files
 .env.local
 .env.*.local
+.env.example
 *.local
