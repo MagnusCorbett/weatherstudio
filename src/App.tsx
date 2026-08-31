@@ -10,7 +10,6 @@ import {
   CloudSun,
   Droplets,
   Gauge,
-  GitBranch,
   Globe2,
   Heart,
   LocateFixed,
@@ -481,7 +480,7 @@ function App() {
             </div>
           </section>
 
-          <footer className="footer"><span><ShieldCheck size={14} /> {weatherStatus === 'loading' ? 'Loading live weather…' : weatherStatus === 'live' ? 'Google Weather live · Air quality remains a preview' : 'Stubbed weather data · Add a Google demo key to go live'}</span><span className="footer-links"><a href="#">Privacy</a><a href="#">Help center</a><a href="#"><GitBranch size={14} /> GitHub</a></span></footer>
+          <footer className="footer"><span><ShieldCheck size={14} /> {weatherStatus === 'loading' ? 'Loading live weather…' : weatherStatus === 'live' ? 'Google Weather live · Air quality remains a preview' : 'Stubbed weather data · Add a Google demo key to go live'}</span></footer>
         </div>
       </main>
 
