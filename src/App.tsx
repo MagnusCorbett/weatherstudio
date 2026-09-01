@@ -212,6 +212,7 @@ function App() {
   const [search, setSearch] = useState('')
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<LocationCoordinates[]>([])
   const [locationError, setLocationError] = useState('')
   const [locating, setLocating] = useState(false)
   const [locationSource, setLocationSource] = useState<'precise' | 'approximate' | null>(null)
@@ -255,6 +256,37 @@ function App() {
     return () => { currentRequest = false }
   }, [selectedLocation])
 
+  useEffect(() => {
+    const query = search.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+    let active = true
+    const timer = window.setTimeout(() => {
+      setSearching(true)
+      geocodeLocation(query)
+        .then((matches) => {
+          if (!active) return
+          setSearchResults(matches)
+          if (!matches.length) setSearchError("We could not find that location.")
+        })
+        .catch((error: Error) => {
+          if (!active) return
+          setSearchResults([])
+          setSearchError(error.message || "We could not find that location.")
+        })
+        .finally(() => {
+          if (active) setSearching(false)
+        })
+    }, 250)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [search])
+
   const current = weather?.current
   const isWeatherLoading = weatherStatus === 'loading'
   const hourlyRows = isWeatherLoading ? [] : weather?.hourly.length ? weather.hourly : demoHourly
@@ -266,30 +298,15 @@ function App() {
   fallbackSunset.setHours(18, 18, 0, 0)
   const daylight = getDaylightStats(weather?.sunrise ?? fallbackSunrise.toISOString(), weather?.sunset ?? fallbackSunset.toISOString(), now)
 
-  const submitSearch = async () => {
-    const normalized = search.trim().toLowerCase()
-    if (!normalized) return
+  const submitSearch = () => {
+    const query = search.trim()
+    if (!query) return
     setSearchError('')
-    const match = defaultLocations.find((item) => item.label.toLowerCase() === normalized || item.label.split(',')[0].toLowerCase() === normalized)
-    if (match) {
-      setLocationMode('manual')
-      setLocationSource(null)
-      setSelectedLocation(match)
-      setSearch('')
+    if (searchResults.length) {
+      chooseSearchResult(searchResults[0])
       return
     }
-    setSearching(true)
-    try {
-      const matchFromSearch = await geocodeLocation(search.trim())
-      setLocationMode('manual')
-      setLocationSource(null)
-      setSelectedLocation(matchFromSearch)
-      setSearch('')
-    } catch (error) {
-      setSearchError(error instanceof Error ? error.message : 'We could not find that location.')
-    } finally {
-      setSearching(false)
-    }
+    if (!searching) setSearchError('Choose a location from the results.')
   }
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
@@ -302,6 +319,13 @@ function App() {
     setLocationSource(null)
     setSelectedLocation(place)
     setOpenPlaceMenuId(null)
+  }
+
+  const chooseSearchResult = (place: LocationCoordinates) => {
+    selectLocation(place)
+    setSearch('')
+    setSearchResults([])
+    setSearchError('')
   }
 
   const toggleSaved = () => {
@@ -427,11 +451,23 @@ function App() {
 
       <main className="main-content">
         <header className="topbar">
-          <form className="search-box" onSubmit={handleSearch}>
-            <Search size={17} />
-            <input ref={searchInputRef} value={search} onChange={(event) => { setSearch(event.target.value); setSearchError('') }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void submitSearch() } }} placeholder={searching ? 'Searching…' : 'Search city or ZIP code'} aria-label="Search city or ZIP code" />
-            <kbd>⌘ K</kbd>
-          </form>
+          <div className="search-container">
+            <form className="search-box" onSubmit={handleSearch}>
+              <Search size={17} />
+              <input ref={searchInputRef} value={search} onChange={(event) => { setSearch(event.target.value); setSearchError(""); setSearchResults([]) }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void submitSearch() } }} placeholder={searching ? 'Searching…' : 'Search city or ZIP code'} aria-label="Search city or ZIP code" />
+              <kbd>⌘ K</kbd>
+            </form>
+            {searchResults.length > 0 && <div className="search-results" role="listbox" aria-label="Location search results">
+              {searchResults.map((place, index) => {
+                const [name, ...details] = place.label.split(",")
+                const detail = details.join(",").trim() || "Location"
+                return <button key={place.label + place.latitude + place.longitude} type="button" className="search-result" role="option" aria-selected={index === 0} aria-label={place.label} onClick={() => chooseSearchResult(place)}>
+                  <span className="search-result-icon"><MapPin size={15} /></span>
+                  <span><strong>{name.trim()}</strong><small>{detail}</small></span>
+                </button>
+              })}
+            </div>}
+          </div>
           <div className="topbar-actions">
             <button className={`icon-button location-button ${locating ? 'is-loading' : ''}`} onClick={locateUser} disabled={locating} aria-label={locating ? 'Finding current location' : 'Use current location'} title="Use Windows/browser location"><LocateFixed size={18} /></button>
           </div>
