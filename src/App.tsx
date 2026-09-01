@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import {
-  AirVent,
   ChevronDown,
   ChevronRight,
   Cloud,
@@ -203,7 +202,6 @@ function App() {
   const [selectedLocation, setSelectedLocation] = useState<LocationCoordinates>(readStoredLocation)
   const [locationMode, setLocationMode] = useState<'auto' | 'manual'>(readStoredLocationMode)
   const [profile, setProfile] = useState<UserProfile>(readStoredProfile)
-  const [profileEditorOpen, setProfileEditorOpen] = useState(false)
   const [profileDraft, setProfileDraft] = useState<UserProfile>(readStoredProfile)
   const [weather, setWeather] = useState<DashboardWeather | null>(null)
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'live' | 'demo'>('loading')
@@ -356,17 +354,12 @@ function App() {
     searchInputRef.current?.focus()
   }
 
-  const openProfileEditor = () => {
-    setProfileDraft(profile)
-    setProfileEditorOpen(true)
-  }
-
   const saveProfile = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const name = profileDraft.name.trim() || 'Jordan Davis'
     const initials = profileDraft.initials.trim().slice(0, 3).toUpperCase() || initialsForName(name)
     setProfile({ name, initials })
-    setProfileEditorOpen(false)
+    setProfileDraft({ name, initials })
   }
 
   const useApproximateLocation = async () => {
@@ -459,16 +452,12 @@ function App() {
           </div>
           <div className="topbar-actions">
             <button className={"icon-button location-button" + (locating ? " is-loading" : "")} onClick={locateUser} disabled={locating} aria-label={locating ? "Finding current location" : "Use current location"} title="Use Windows/browser location"><LocateFixed size={18} /></button>
-            <button className="icon-button topbar-settings" onClick={() => setSettingsOpen(true)} aria-label="Open settings" title="Settings"><Settings size={17} /></button>
-            <button className="topbar-profile" onClick={openProfileEditor} aria-expanded={profileEditorOpen} aria-label="Edit profile">
-              <div className="avatar">{profile.initials}</div><span><strong>{profile.name}</strong></span><MoreHorizontal size={17} />
-            </button>
-            {profileEditorOpen && <form className="profile-editor topbar-profile-editor" onSubmit={saveProfile}>
-              <div className="profile-editor-heading"><strong>Edit profile</strong><button type="button" className="icon-button" onClick={() => setProfileEditorOpen(false)} aria-label="Close profile editor"><X size={15} /></button></div>
-              <label>Display name<input value={profileDraft.name} onChange={(event) => setProfileDraft({ ...profileDraft, name: event.target.value })} autoFocus /></label>
-              <label>Initials<input value={profileDraft.initials} maxLength={3} onChange={(event) => setProfileDraft({ ...profileDraft, initials: event.target.value.toUpperCase() })} /></label>
-              <button className="profile-save" type="submit">Save profile</button>
-            </form>}
+            <div className="topbar-account">
+              <button className="topbar-profile" onClick={() => setSettingsOpen(true)} aria-expanded={settingsOpen} aria-label="Open profile and settings">
+                <div className="avatar">{profile.initials}</div><span><strong>{profile.name}</strong></span>
+              </button>
+              <button className="icon-button topbar-settings" onClick={() => setSettingsOpen(true)} aria-label="Open profile and settings" title="Settings"><Settings size={17} /></button>
+            </div>
           </div>
         </header>
 
@@ -507,7 +496,7 @@ function App() {
             </article>
 
             <div className="detail-stack">
-              <article className="panel details-panel"><div className="section-heading compact"><div><span className="section-kicker">At a glance</span><h2>Details</h2></div><Gauge size={19} /></div><div className="detail-grid">{isWeatherLoading ? Array.from({ length: 6 }, (_, index) => <div className="metric loading-metric" key={`loading-metric-${index}`}><LoadingValue className="loading-metric-icon" /><div><LoadingValue className="loading-metric-label" /><LoadingValue className="loading-metric-value" /><LoadingValue className="loading-metric-sub" /></div></div>) : <><Metric icon={Wind} tone="wind" label="Wind" value={`${Math.round(current?.windSpeed ?? 9)} mph`} sub={current?.windDirection ?? 'WSW'} /><Metric icon={Droplets} tone="water" label="Humidity" value={`${Math.round(current?.humidity ?? 63)}%`} sub="Comfortable" /><Metric icon={EyeIcon} label="Visibility" value={`${Math.round(current?.visibility ?? 10)} mi`} sub="Clear view" /><Metric icon={Gauge} label="Pressure" value={(current?.pressure ?? 30.05).toFixed(2)} sub="inHg" /><Metric icon={Sun} tone="uv" label="UV index" value={`${Math.round(current?.uvIndex ?? 4)}`} sub="Moderate" /><Metric icon={AirVent} tone="wind" label="Dew point" value={formatTemp(current?.dewPoint ?? 59, unit, showDecimals)} sub="Comfortable" /></>}</div></article>
+              <article className="panel details-panel"><div className="section-heading compact"><div><span className="section-kicker">At a glance</span><h2>Details</h2></div><Gauge size={19} /></div><div className="detail-grid">{isWeatherLoading ? Array.from({ length: 4 }, (_, index) => <div className="metric loading-metric" key={`loading-metric-${index}`}><LoadingValue className="loading-metric-icon" /><div><LoadingValue className="loading-metric-label" /><LoadingValue className="loading-metric-value" /><LoadingValue className="loading-metric-sub" /></div></div>) : <><Metric icon={Wind} tone="wind" label="Wind" value={`${Math.round(current?.windSpeed ?? 9)} mph`} sub={current?.windDirection ?? 'WSW'} /><Metric icon={Droplets} tone="water" label="Humidity" value={`${Math.round(current?.humidity ?? 63)}%`} sub="Comfortable" /><Metric icon={EyeIcon} label="Visibility" value={`${Math.round(current?.visibility ?? 10)} mi`} sub="Clear view" /><Metric icon={Sun} tone="uv" label="UV index" value={`${Math.round(current?.uvIndex ?? 4)}`} sub="Moderate" /></>}</div></article>
               <article className="panel sun-panel"><div className="section-heading compact"><div><span className="section-kicker">Daylight</span><h2>Sunrise & sunset</h2></div><Sun size={19} className="icon-sun" /></div><div className="sun-times"><div><Sunrise size={20} /><span>Sunrise<strong>{isWeatherLoading ? <LoadingValue className="loading-sun-time" /> : weather ? formatClock(weather.sunrise, weather.timeZone) : '7:24 AM'}</strong></span></div><div><Sunset size={20} /><span>Sunset<strong>{isWeatherLoading ? <LoadingValue className="loading-sun-time" /> : weather ? formatClock(weather.sunset, weather.timeZone) : '6:18 PM'}</strong></span></div></div><div className={`daylight-bar ${isWeatherLoading ? 'loading-daylight-bar' : ''}`}><span style={isWeatherLoading ? undefined : { width: String(daylight.progress * 100) + '%' }} /><i className="sun-position" style={isWeatherLoading ? undefined : { left: String(daylight.progress * 100) + '%' }} /></div><div className="daylight-caption">{isWeatherLoading ? <><LoadingValue className="loading-daylight-caption" /><LoadingValue className="loading-daylight-caption loading-daylight-caption-short" /></> : <><span>{daylight.durationLabel} of daylight</span><span>{daylight.remainingLabel}</span></>}</div></article>
             </div>
           </section>
@@ -516,7 +505,7 @@ function App() {
         </div>
       </main>
 
-      {settingsOpen && <div className="settings-layer"><button className="settings-scrim" onClick={() => setSettingsOpen(false)} aria-label="Close settings" /><aside className="settings-drawer"><div className="drawer-header"><div><h2>Settings</h2></div><button className="icon-button" onClick={() => setSettingsOpen(false)} aria-label="Close settings"><X size={19} /></button></div><div className="drawer-content"><section className="settings-section"><div className="settings-title"><div className="settings-title-icon"><Moon size={17} /></div><div><strong>Appearance</strong><span>Choose the mood for your forecast.</span></div></div><div className="theme-grid">{themes.map((item) => <button key={item.id} className={`theme-option ${theme === item.id ? 'active' : ''}`} onClick={() => setTheme(item.id)}><div className="theme-swatches">{item.swatches.map((swatch) => <i key={swatch} style={{ background: swatch }} />)}</div><strong>{item.label}</strong><span>{item.note}</span>{theme === item.id && <span className="theme-check">✓</span>}</button>)}</div></section><section className="settings-section"><div className="settings-title"><div className="settings-title-icon"><Globe2 size={17} /></div><div><strong>Units</strong><span>Set your preferred measurements.</span></div></div><div className="segmented"><button className={unit === 'F' ? 'active' : ''} onClick={() => setUnit('F')}>°F <span>Fahrenheit</span></button><button className={unit === 'C' ? 'active' : ''} onClick={() => setUnit('C')}>°C <span>Celsius</span></button></div><div className="precision-control"><span>Precision</span><button className={`toggle ${showDecimals ? 'enabled' : ''}`} onClick={() => setShowDecimals(!showDecimals)} role="switch" aria-checked={showDecimals} aria-label="Precision"><i /></button></div></section><section className="settings-section about-settings"><div className="settings-title"><div className="settings-title-icon"><UserRound size={17} /></div><div><strong>About Weather Studio</strong><span>Version 0.1 · Desktop preview</span></div></div></section></div><div className="drawer-footer"><button className="secondary-button" onClick={() => setSettingsOpen(false)}>Done</button></div></aside></div>}
+      {settingsOpen && <div className="settings-layer"><button className="settings-scrim" onClick={() => setSettingsOpen(false)} aria-label="Close settings" /><aside className="settings-drawer"><div className="drawer-header"><div><h2>Settings</h2></div><button className="icon-button" onClick={() => setSettingsOpen(false)} aria-label="Close settings"><X size={19} /></button></div><div className="drawer-content"><section className="settings-section"><div className="settings-title"><div className="settings-title-icon"><UserRound size={17} /></div><div><strong>Profile</strong><span>Set your name and initials.</span></div></div><form className="profile-editor settings-profile-editor" onSubmit={saveProfile}><label>Display name<input value={profileDraft.name} onChange={(event) => setProfileDraft({ ...profileDraft, name: event.target.value })} /></label><label>Initials<input value={profileDraft.initials} maxLength={3} onChange={(event) => setProfileDraft({ ...profileDraft, initials: event.target.value.toUpperCase() })} /></label><button className="profile-save" type="submit">Save profile</button></form></section><section className="settings-section"><div className="settings-title"><div className="settings-title-icon"><Moon size={17} /></div><div><strong>Appearance</strong><span>Choose the mood for your forecast.</span></div></div><div className="theme-grid">{themes.map((item) => <button key={item.id} className={`theme-option ${theme === item.id ? 'active' : ''}`} onClick={() => setTheme(item.id)}><div className="theme-swatches">{item.swatches.map((swatch) => <i key={swatch} style={{ background: swatch }} />)}</div><strong>{item.label}</strong><span>{item.note}</span>{theme === item.id && <span className="theme-check">✓</span>}</button>)}</div></section><section className="settings-section"><div className="settings-title"><div className="settings-title-icon"><Globe2 size={17} /></div><div><strong>Units</strong><span>Set your preferred measurements.</span></div></div><div className="segmented"><button className={unit === 'F' ? 'active' : ''} onClick={() => setUnit('F')}>°F <span>Fahrenheit</span></button><button className={unit === 'C' ? 'active' : ''} onClick={() => setUnit('C')}>°C <span>Celsius</span></button></div><div className="precision-control"><span>Precision</span><button className={`toggle ${showDecimals ? 'enabled' : ''}`} onClick={() => setShowDecimals(!showDecimals)} role="switch" aria-checked={showDecimals} aria-label="Precision"><i /></button></div></section><section className="settings-section about-settings"><div className="settings-title"><div className="settings-title-icon"><UserRound size={17} /></div><div><strong>About Weather Studio</strong><span>Version 0.1 · Desktop preview</span></div></div></section></div><div className="drawer-footer"><button className="secondary-button" onClick={() => setSettingsOpen(false)}>Done</button></div></aside></div>}
     </div>
   )
 }
