@@ -142,15 +142,16 @@ export async function fetchWeather(location: LocationCoordinates): Promise<Dashb
   }
 }
 
-export async function geocodeLocation(query: string): Promise<LocationCoordinates> {
+export async function geocodeLocation(query: string): Promise<LocationCoordinates[]> {
   const response = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`)
   const payload = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(payload?.message || 'We could not find that location.')
-  return {
-    label: payload.label,
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-  }
+  const results = Array.isArray(payload.results) ? payload.results : []
+  if (!response.ok || !results.length) throw new Error(payload?.message || 'We could not find that location.')
+  return results.map((item: Record<string, unknown>) => ({
+    label: String(item.label || 'Unknown location'),
+    latitude: Number(item.latitude),
+    longitude: Number(item.longitude),
+  }))
 }
 
 export async function reverseGeocodeLocation(latitude: number, longitude: number): Promise<LocationCoordinates> {
