@@ -435,18 +435,7 @@ function App() {
           {!orderedSavedLocations.length && <div className="empty-places">No saved places yet.<button onClick={focusSearch}>Search for one</button></div>}
         </div>
 
-        <div className="sidebar-bottom">
-          <button className="nav-item" onClick={() => setSettingsOpen(true)}><Settings size={18} /><span>Settings</span></button>
-          {profileEditorOpen && <form className="profile-editor" onSubmit={saveProfile}>
-            <div className="profile-editor-heading"><strong>Edit profile</strong><button type="button" className="icon-button" onClick={() => setProfileEditorOpen(false)} aria-label="Close profile editor"><X size={15} /></button></div>
-            <label>Display name<input value={profileDraft.name} onChange={(event) => setProfileDraft({ ...profileDraft, name: event.target.value })} autoFocus /></label>
-            <label>Initials<input value={profileDraft.initials} maxLength={3} onChange={(event) => setProfileDraft({ ...profileDraft, initials: event.target.value.toUpperCase() })} /></label>
-            <button className="profile-save" type="submit">Save profile</button>
-          </form>}
-          <button className="profile-row" onClick={openProfileEditor} aria-expanded={profileEditorOpen} aria-label="Edit profile">
-            <div className="avatar">{profile.initials}</div><span><strong>{profile.name}</strong></span><MoreHorizontal size={17} />
-          </button>
-        </div>
+
       </aside>
 
       <main className="main-content">
@@ -469,7 +458,17 @@ function App() {
             </div>}
           </div>
           <div className="topbar-actions">
-            <button className={`icon-button location-button ${locating ? 'is-loading' : ''}`} onClick={locateUser} disabled={locating} aria-label={locating ? 'Finding current location' : 'Use current location'} title="Use Windows/browser location"><LocateFixed size={18} /></button>
+            <button className={"icon-button location-button" + (locating ? " is-loading" : "")} onClick={locateUser} disabled={locating} aria-label={locating ? "Finding current location" : "Use current location"} title="Use Windows/browser location"><LocateFixed size={18} /></button>
+            <button className="icon-button topbar-settings" onClick={() => setSettingsOpen(true)} aria-label="Open settings" title="Settings"><Settings size={17} /></button>
+            <button className="topbar-profile" onClick={openProfileEditor} aria-expanded={profileEditorOpen} aria-label="Edit profile">
+              <div className="avatar">{profile.initials}</div><span><strong>{profile.name}</strong></span><MoreHorizontal size={17} />
+            </button>
+            {profileEditorOpen && <form className="profile-editor topbar-profile-editor" onSubmit={saveProfile}>
+              <div className="profile-editor-heading"><strong>Edit profile</strong><button type="button" className="icon-button" onClick={() => setProfileEditorOpen(false)} aria-label="Close profile editor"><X size={15} /></button></div>
+              <label>Display name<input value={profileDraft.name} onChange={(event) => setProfileDraft({ ...profileDraft, name: event.target.value })} autoFocus /></label>
+              <label>Initials<input value={profileDraft.initials} maxLength={3} onChange={(event) => setProfileDraft({ ...profileDraft, initials: event.target.value.toUpperCase() })} /></label>
+              <button className="profile-save" type="submit">Save profile</button>
+            </form>}
           </div>
         </header>
 
@@ -491,10 +490,7 @@ function App() {
               <div className={`comfort-row ${isWeatherLoading ? 'loading-comfort' : ''}`}><div><Thermometer size={16} /><span>Feels like <strong>{isWeatherLoading ? <LoadingValue className="loading-inline" /> : formatTemp(current?.feelsLike ?? 71, unit, showDecimals)}</strong></span></div><div><Umbrella size={16} /><span>Precipitation <strong>{isWeatherLoading ? <LoadingValue className="loading-inline" /> : `${current?.precipitationChance ?? 8}%`}</strong></span></div><div><Wind size={16} /><span>Wind <strong>{isWeatherLoading ? <LoadingValue className="loading-inline loading-wind" /> : `${current?.windDirection ?? 'WSW'} ${Math.round(current?.windSpeed ?? 9)} mph`}</strong></span></div></div>
             </article>
 
-            <article className="air-card panel-glow">
-              <div className="card-topline"><span>Air quality <em className="data-label">Preview</em></span><button className="more-button" aria-label="More air quality options"><MoreHorizontal size={18} /></button></div>
-              {isWeatherLoading ? <div className="air-loading"><LoadingValue className="loading-air-score" /><LoadingValue className="loading-air-copy" /><LoadingValue className="loading-air-copy loading-air-copy-short" /></div> : <><div className="air-content"><div className="air-score">32</div><div><div className="air-status"><span className="status-dot" />Good</div><p>Air feels fresh today.<br />A great day to be outside.</p></div></div><div className="air-meter"><span /><span /><span /><span /><span /></div><div className="meter-labels"><span>Good</span><span>Moderate</span><span>Poor</span></div><div className="air-meta"><span>PM2.5 <strong>8.4</strong></span><span>O₃ <strong>22</strong></span><span>NO₂ <strong>11</strong></span></div></>}
-            </article>
+
           </section>
 
           <section className="section-block hourly-section">
@@ -516,7 +512,7 @@ function App() {
             </div>
           </section>
 
-          <footer className="footer"><span><ShieldCheck size={14} /> {weatherStatus === 'loading' ? 'Loading live weather…' : weatherStatus === 'live' ? 'Google Weather live · Air quality remains a preview' : 'Stubbed weather data · Add a Google demo key to go live'}</span></footer>
+          <footer className="footer"><span><ShieldCheck size={14} /> {weatherStatus === 'loading' ? 'Loading live weather…' : weatherStatus === 'live' ? 'Google Weather live' : 'Stubbed weather data · Add a Google demo key to go live'}</span></footer>
         </div>
       </main>
 
