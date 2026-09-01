@@ -452,12 +452,11 @@ function App() {
           </div>
           <div className="topbar-actions">
             <button className={"icon-button location-button" + (locating ? " is-loading" : "")} onClick={locateUser} disabled={locating} aria-label={locating ? "Finding current location" : "Use current location"} title="Use Windows/browser location"><LocateFixed size={18} /></button>
-            <div className="topbar-account">
-              <button className="topbar-profile" onClick={() => setSettingsOpen(true)} aria-expanded={settingsOpen} aria-label="Open profile and settings">
-                <div className="avatar">{profile.initials}</div><span><strong>{profile.name}</strong></span>
-              </button>
-              <button className="icon-button topbar-settings" onClick={() => setSettingsOpen(true)} aria-label="Open profile and settings" title="Settings"><Settings size={17} /></button>
-            </div>
+            <button className="topbar-account" onClick={() => setSettingsOpen(true)} aria-expanded={settingsOpen} aria-label="Open profile and settings" title="Profile and settings">
+              <span className="topbar-profile-info"><span className="avatar">{profile.initials}</span><span><strong>{profile.name}</strong></span></span>
+              <span className="topbar-account-divider" aria-hidden="true" />
+              <Settings size={17} />
+            </button>
           </div>
         </header>
 
