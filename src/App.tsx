@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import {
-  ChevronDown,
   ChevronRight,
   Cloud,
   CloudDrizzle,
@@ -465,7 +464,7 @@ function App() {
             <div>
               <h1>Sup, here's the weather</h1>
             </div>
-            <div className="location-actions"><div className="location-control"><MapPin size={16} /><span>{selectedLocation.label}</span><ChevronDown size={16} /></div>{!isSaved && <button className="add-saved-button" onClick={addSelectedToSaved}><Plus size={14} />Add to saved</button>}</div>
+            <div className="location-actions"><div className="location-display" aria-label={`Now viewing ${selectedLocation.label}`}><div className="location-display-icon"><MapPin size={17} /></div><span className="location-display-copy"><small>Now viewing</small><strong>{selectedLocation.label}</strong></span></div>{!isSaved && <button className="add-saved-button" onClick={addSelectedToSaved}><Plus size={14} />Add to saved</button>}</div>
           </div>
 
           {(weatherStatus === 'demo' || searchError || locationError || locationSource === 'approximate') && <div className="status-banner"><span><ShieldCheck size={15} />{locationError || searchError || (locationSource === 'approximate' ? 'Using an approximate location from your network.' : weatherError || 'Add a Google Weather demo key to load live conditions.')}</span>{locationError || locationSource === 'approximate' ? <span className="status-actions"><button className="status-action" onClick={locateUser}>Try again</button>{locationError && <a className="status-action" href="ms-settings:privacy-location">Windows settings</a>}</span> : <a href="https://developers.google.com/maps/documentation/weather/demo-key" target="_blank" rel="noreferrer">Get demo key <ChevronRight size={13} /></a>}</div>}
