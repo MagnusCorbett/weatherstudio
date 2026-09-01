@@ -144,14 +144,16 @@ async function handleGeocode(request, response) {
 
   const geocodeUrl = new URL('https://geocoding-api.open-meteo.com/v1/search')
   geocodeUrl.searchParams.set('name', query)
-  geocodeUrl.searchParams.set('count', '1')
+  geocodeUrl.searchParams.set('count', '8')
   geocodeUrl.searchParams.set('language', 'en')
   geocodeUrl.searchParams.set('format', 'json')
   const geocodeResponse = await fetch(geocodeUrl)
   const body = await geocodeResponse.json().catch(() => ({}))
-  const result = body?.results?.[0]
+  const results = Array.isArray(body?.results)
+    ? body.results.filter((result) => Number.isFinite(result?.latitude) && Number.isFinite(result?.longitude) && result?.name)
+    : []
 
-  if (!geocodeResponse.ok || !result) {
+  if (!geocodeResponse.ok || !results.length) {
     sendJson(response, geocodeResponse.ok ? 404 : geocodeResponse.status, {
       code: 'LOCATION_NOT_FOUND',
       message: 'We could not find that location.',
@@ -159,13 +161,17 @@ async function handleGeocode(request, response) {
     return
   }
 
-  const region = result.admin1 && result.admin1 !== result.name ? `, ${result.admin1}` : ''
-  const country = result.country_code && result.country_code !== 'US' ? `, ${result.country_code}` : ''
-  sendJson(response, 200, {
-    label: `${result.name}${region}${country}`,
-    latitude: result.latitude,
-    longitude: result.longitude,
-  })
+  const locations = results.map((result) => {
+    const region = result.admin1 && result.admin1 !== result.name ? ', ' + result.admin1 : ''
+    const country = result.country_code && result.country_code !== 'US' ? ', ' + result.country_code : ''
+    return {
+      label: String(result.name) + region + country,
+      latitude: result.latitude,
+      longitude: result.longitude,
+    }
+  }).filter((location, index, all) => all.findIndex((candidate) => candidate.label === location.label && candidate.latitude === location.latitude && candidate.longitude === location.longitude) === index).slice(0, 8)
+
+  sendJson(response, 200, { results: locations })
 }
 
 async function handleReverseGeocode(request, response) {
